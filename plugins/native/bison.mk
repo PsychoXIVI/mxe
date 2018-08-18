@@ -2,8 +2,8 @@
 
 PKG             := bison
 $(PKG)_IGNORE   :=
-$(PKG)_VERSION  := 3.0.4
-$(PKG)_CHECKSUM := a72428c7917bdf9fa93cb8181c971b6e22834125848cf1d03ce10b1bb0716fe1
+$(PKG)_VERSION  := 3.0.5
+$(PKG)_CHECKSUM := 075cef2e814642e30e10e8155e93022e4a91ca38a65aa1d5467d4e969f97f338
 $(PKG)_SUBDIR   := bison-$($(PKG)_VERSION)
 $(PKG)_FILE     := bison-$($(PKG)_VERSION).tar.xz
 $(PKG)_URL      := https://ftp.gnu.org/gnu/bison/$($(PKG)_FILE)
