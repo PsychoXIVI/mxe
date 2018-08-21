@@ -4,21 +4,19 @@ PKG             := boost
 $(PKG)_WEBSITE  := https://www.boost.org/
 $(PKG)_DESCR    := Boost C++ Library
 $(PKG)_IGNORE   :=
-$(PKG)_VERSION  := 1.60.0
-$(PKG)_CHECKSUM := 686affff989ac2488f79a97b9479efb9f2abae035b5ed4d8226de6857933fd3b
+$(PKG)_VERSION  := 1.68.0
+$(PKG)_CHECKSUM := 7f6130bc3cf65f56a618888ce9d5ea704fa10b462be126ad053e80e553d6d8b7
 $(PKG)_SUBDIR   := boost_$(subst .,_,$($(PKG)_VERSION))
 $(PKG)_FILE     := boost_$(subst .,_,$($(PKG)_VERSION)).tar.bz2
-$(PKG)_URL      := https://$(SOURCEFORGE_MIRROR)/project/boost/boost/$($(PKG)_VERSION)/$($(PKG)_FILE)
-$(PKG)_TARGETS  := $(BUILD) $(MXE_TARGETS)
+$(PKG)_URL      := https://dl.bintray.com/boostorg/release/$($(PKG)_VERSION)/source/$($(PKG)_FILE)
 $(PKG)_DEPS     := cc bzip2 expat zlib
 
-$(PKG)_DEPS_$(BUILD) := zlib
-
 define $(PKG)_UPDATE
-    $(WGET) -q -O- 'https://www.boost.org/users/download/' | \
-    $(SED) -n 's,.*/boost/\([0-9][^"/]*\)/".*,\1,p' | \
-    grep -v beta | \
-    head -1
+	$(WGET) -q -O- 'https://dl.bintray.com/boostorg/release/' | \
+	grep -o 'href="[0-9.]*/' | \
+	grep -o '[0-9.]*' | \
+	$(SORT) --version-sort | \
+    tail -1
 endef
 
 define $(PKG)_BUILD
@@ -68,57 +66,22 @@ define $(PKG)_BUILD
 
     # setup cmake toolchain
     echo 'set(Boost_THREADAPI "win32")' > '$(CMAKE_TOOLCHAIN_DIR)/$(PKG).cmake'
-
     '$(TARGET)-g++' \
-        -W -Wall -Werror -ansi -U__STRICT_ANSI__ -pedantic \
+        -W -Wall -Werror -ansi -std=c++11 -U__STRICT_ANSI__ -pedantic \
         '$(PWD)/src/$(PKG)-test.cpp' -o '$(PREFIX)/$(TARGET)/bin/test-boost.exe' \
         -DBOOST_THREAD_USE_LIB \
         -lboost_serialization-mt \
-        -lboost_thread_win32-mt \
-        -lboost_system-mt \
+        -lboost_thread-mt \
         -lboost_chrono-mt \
-        -lboost_context-mt
+        -lboost_context-mt \
+        -lboost_system-mt
 
     # test cmake
     mkdir '$(1).test-cmake'
-    cd '$(1).test-cmake' && '$(TARGET)-cmake' \
+    cd '$(1).test-cmake' && '$(TARGET)-cmake' --debug-output \
         -DPKG=$(PKG) \
         -DPKG_VERSION=$($(PKG)_VERSION) \
+		-DCMAKE_CXX_STANDARD=11 \
         '$(PWD)/src/cmake/test'
     $(MAKE) -C '$(1).test-cmake' -j 1 install
-endef
-
-define $(PKG)_BUILD_$(BUILD)
-    # old version appears to interfere
-    rm -rf '$(PREFIX)/$(TARGET)/include/boost/'
-    rm -f "$(PREFIX)/$(TARGET)/lib/libboost"*
-
-    # compile boost build (b2)
-    cd '$(SOURCE_DIR)/tools/build/' && ./bootstrap.sh
-
-    # minimal native build - for more features, replace:
-    # --with-system \
-    # --with-filesystem \
-    #
-    # with:
-    # --without-mpi \
-    # --without-python \
-
-    cd '$(SOURCE_DIR)' && ./tools/build/b2 \
-        -a \
-        -q \
-        -j '$(JOBS)' \
-        variant=release \
-        link=static \
-        threading=multi \
-        runtime-link=static \
-        --disable-icu \
-        --with-system \
-        --with-filesystem \
-        --build-dir='$(BUILD_DIR)' \
-        --prefix='$(PREFIX)/$(TARGET)' \
-        --exec-prefix='$(PREFIX)/$(TARGET)/bin' \
-        --libdir='$(PREFIX)/$(TARGET)/lib' \
-        --includedir='$(PREFIX)/$(TARGET)/include' \
-        install
 endef
